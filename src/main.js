@@ -2,6 +2,7 @@ import * as THREE from 'three'
 
 document.body.style.margin = '0px'
 document.body.style.padding = '0px'
+document.body.style.cursor = 'none'
 
 const WIDTH = window.innerWidth
 const HEIGHT = window.innerHeight
@@ -33,7 +34,8 @@ const material = new THREE.ShaderMaterial({
       vec2 uv = vUv;
       
       vec4 depthColor = texture2D(depthTexture, vUv);
-      uv += (depthColor.r * d.xy * 0.03);
+      float depth = depthColor.r;
+      uv += (depth * d * d * 0.1);
       vec4 rgbColor = texture2D(rgbTexture, uv);
 
       gl_FragColor = rgbColor;
@@ -49,50 +51,43 @@ const material = new THREE.ShaderMaterial({
 const mesh = new THREE.Mesh(geometry, material)
 scene.add(mesh)
 
-const rgbPath = 'assets/g0U95UErodo/rgb/'
-const depthPath = 'assets/g0U95UErodo/depth/'
+const rgbPath = 'assets/hTNsniG5xEA/rgb/'
+const depthPath = 'assets/hTNsniG5xEA/depth/'
 
+const FRAME_START = parseInt(Math.random() * 2500)
+const FRAME_COUNT = 2500
 let frameCount = 0
-const FRAME_COUNT = 15000
+
 function pad(str, padString, length) {
   while (str.length < length)
       str = padString + str;
   return str;
-}
-
-new THREE.TextureLoader().load(rgbPath+(pad(frameCount + '', '0', 5) + '.jpg'), (t) => {
-  mesh.material.uniforms.rgbTexture.value = t
-})
-
+}8000
 new THREE.TextureLoader().load(depthPath+(pad(frameCount + '', '0', 5) + '.jpg'), (t) => {
   mesh.material.uniforms.depthTexture.value = t
 })
 
 
-setInterval(() => {
-  new THREE.TextureLoader().load(rgbPath+(pad(frameCount + '', '0', 5) + '.jpg'), (t) => {
+const render = () => { 
+  renderer.render(scene, camera)
+
+  new THREE.TextureLoader().load(rgbPath+(pad((FRAME_START + frameCount) + '', '0', 5) + '.jpg'), (t) => {
     mesh.material.uniforms.rgbTexture.value = t
+    requestAnimationFrame(render)
   })
 
-  new THREE.TextureLoader().load(depthPath+(pad(frameCount + '', '0', 5) + '.jpg'), (t) => {
+  new THREE.TextureLoader().load(depthPath+(pad((FRAME_START + frameCount) + '', '0', 5) + '.jpg'), (t) => {
     mesh.material.uniforms.depthTexture.value = t
   })
 
   frameCount++
-  frameCount %= FRAME_COUNT
-}, 1000 / 60)
-
-const render = () => { 
-  renderer.render(scene, camera)
-
-  
-  requestAnimationFrame(render)
+  frameCount %= (FRAME_COUNT - FRAME_START)  
 }
 requestAnimationFrame(render)
 
 window.addEventListener('mousemove', (e) => {
-  const x = e.clientX / WIDTH
-  const y = e.clientY / HEIGHT
+  const x = (e.clientX / WIDTH)
+  const y = (e.clientY / HEIGHT)
 
   mesh.material.uniforms.d.value = [x, y]
 
