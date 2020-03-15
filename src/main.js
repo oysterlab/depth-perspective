@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 
 document.body.style.margin = '0px'
 document.body.style.padding = '0px'
@@ -13,15 +14,16 @@ renderer.setPixelRatio(window.devicePixelRatio)
 document.body.appendChild(renderer.domElement)
 
 const camera = new THREE.PerspectiveCamera(45, WIDTH/HEIGHT, 0.001, 1000)
+camera.position.z = 10
 const scene = new THREE.Scene()
 
-const geometry = new THREE.PlaneGeometry(2, 2)
+const geometry = new THREE.PlaneGeometry(2 * 640 / 480, 2)
 const material = new THREE.ShaderMaterial({
   vertexShader: `
     varying vec2 vUv;
     void main() {
       vUv = uv;      
-      gl_Position = vec4(position, 1.0);
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }
   `,
   fragmentShader: `
@@ -35,7 +37,16 @@ const material = new THREE.ShaderMaterial({
       
       vec4 depthColor = texture2D(depthTexture, vUv);
       float depth = depthColor.r;
-      uv += (depth * d * d * 0.1);
+
+      float t = 0.08;
+
+      if (depth > 0.2) {
+        t = 0.12;
+      } else if (depth > 0.1) {
+        t = 0.1;
+      }
+
+      uv += (depth * d * d * t);
       vec4 rgbColor = texture2D(rgbTexture, uv);
 
       gl_FragColor = rgbColor;
@@ -49,13 +60,14 @@ const material = new THREE.ShaderMaterial({
 })
 
 const mesh = new THREE.Mesh(geometry, material)
+mesh.position.z = 1
 scene.add(mesh)
 
-const rgbPath = 'assets/hTNsniG5xEA/rgb/'
-const depthPath = 'assets/hTNsniG5xEA/depth/'
+const rgbPath = 'assets/g0U95UErodo/rgb/'
+const depthPath = 'assets/g0U95UErodo/depth/'
 
-const FRAME_START = parseInt(Math.random() * 2500)
-const FRAME_COUNT = 2500
+const FRAME_START = parseInt(Math.random() * 10000)
+const FRAME_COUNT = 15000
 let frameCount = 0
 
 function pad(str, padString, length) {
@@ -67,9 +79,11 @@ new THREE.TextureLoader().load(depthPath+(pad(frameCount + '', '0', 5) + '.jpg')
   mesh.material.uniforms.depthTexture.value = t
 })
 
+const controls = new OrbitControls(camera, renderer.domElement)
 
 const render = () => { 
   renderer.render(scene, camera)
+  controls.update()
 
   new THREE.TextureLoader().load(rgbPath+(pad((FRAME_START + frameCount) + '', '0', 5) + '.jpg'), (t) => {
     mesh.material.uniforms.rgbTexture.value = t
